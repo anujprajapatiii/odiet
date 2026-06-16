@@ -18,6 +18,42 @@
     --neutral: #555555;
     --avoid: #cc0000;
     --highlight: #fff2a8;
+    --highlight-text: #111111;
+    /* UI grays */
+    --input-border: #aaaaaa;
+    --input-focus: #333333;
+    --hint: #bbbbbb;
+    --faint: #999999;
+    --muted: #666666;
+    --btn-border: #cccccc;
+    --hover-bg: #f0f0f0;
+    --active-bg: #f2f2f2;
+    --active-border: #111111;
+    --th-border: #aaaaaa;
+    --arrow: #bbbbbb;
+    --arrow-active: #111111;
+  }
+  :root[data-theme="dark"] {
+    --bg-color: #121212;
+    --text-color: #e6e6e6;
+    --border-color: #333333;
+    --beneficial: #5fd35f;
+    --neutral: #a8a8a8;
+    --avoid: #ff6b6b;
+    --highlight: #5a5020;
+    --highlight-text: #ffffff;
+    --input-border: #555555;
+    --input-focus: #999999;
+    --hint: #666666;
+    --faint: #777777;
+    --muted: #999999;
+    --btn-border: #444444;
+    --hover-bg: #1e1e1e;
+    --active-bg: #2a2a2a;
+    --active-border: #e6e6e6;
+    --th-border: #555555;
+    --arrow: #666666;
+    --arrow-active: #e6e6e6;
   }
   * { box-sizing: border-box; }
   html, body { overflow-x: hidden; }
@@ -31,14 +67,32 @@
     font-size: 13px;
     line-height: 1.4;
   }
-  h1 {
-    font-size: 1.2rem;
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 10px;
-    margin-top: 0;
+    margin-bottom: 20px;
+  }
+  h1 {
+    font-size: 1.2rem;
+    margin: 0;
     text-transform: uppercase;
     letter-spacing: 1px;
   }
+  #theme-toggle {
+    flex: none;
+    border: 1px solid var(--btn-border);
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: 1rem;
+    line-height: 1;
+    padding: 6px 9px;
+    cursor: pointer;
+  }
+  #theme-toggle:hover { border-color: var(--input-focus); }
 
   /* Search field with inline clear button */
   .search-wrap {
@@ -50,12 +104,14 @@
     padding: 10px 64px 10px 10px;
     font-family: inherit;
     font-size: 1rem;
-    border: 1px solid #aaa;
+    border: 1px solid var(--input-border);
+    background: var(--bg-color);
+    color: var(--text-color);
     box-sizing: border-box;
     outline: none;
   }
   input[type="text"]:focus {
-    border-color: #333;
+    border-color: var(--input-focus);
   }
   .search-hint {
     position: absolute;
@@ -63,7 +119,7 @@
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.7rem;
-    color: #bbb;
+    color: var(--hint);
     pointer-events: none;
     user-select: none;
   }
@@ -76,13 +132,13 @@
     background: none;
     font-family: inherit;
     font-size: 1.1rem;
-    color: #999;
+    color: var(--faint);
     cursor: pointer;
     padding: 4px 6px;
     line-height: 1;
     display: none;
   }
-  #clear-search:hover { color: #111; }
+  #clear-search:hover { color: var(--text-color); }
 
   /* Status quick-filter buttons */
   .filters {
@@ -97,17 +153,17 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     padding: 5px 10px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--btn-border);
     background: var(--bg-color);
     color: var(--neutral);
     cursor: pointer;
   }
-  .filter-btn:hover { border-color: #888; }
+  .filter-btn:hover { border-color: var(--input-focus); }
   .filter-btn.active {
-    border-color: #111;
-    color: #111;
+    border-color: var(--active-border);
+    color: var(--text-color);
     font-weight: bold;
-    background: #f2f2f2;
+    background: var(--active-bg);
   }
   .filter-btn[data-status="Highly Beneficial"].active { color: var(--beneficial); border-color: var(--beneficial); }
   .filter-btn[data-status="Avoid"].active { color: var(--avoid); border-color: var(--avoid); }
@@ -118,13 +174,13 @@
     padding: 9px 10px;
     font-family: inherit;
     font-size: 0.9rem;
-    border: 1px solid #aaa;
+    border: 1px solid var(--input-border);
     background: var(--bg-color);
     color: var(--text-color);
     margin-bottom: 12px;
     outline: none;
   }
-  #category-select:focus { border-color: #333; }
+  #category-select:focus { border-color: var(--input-focus); }
 
   table {
     width: 100%;
@@ -143,7 +199,7 @@
   }
   th {
     font-weight: bold;
-    border-bottom: 2px solid #aaa;
+    border-bottom: 2px solid var(--th-border);
     cursor: pointer;
     user-select: none;
     position: sticky;
@@ -151,9 +207,9 @@
     background: var(--bg-color);
     white-space: nowrap;
   }
-  th:hover { background: #f0f0f0; }
-  th .arrow { color: #bbb; font-weight: normal; }
-  th.sorted .arrow { color: #111; }
+  th:hover { background: var(--hover-bg); }
+  th .arrow { color: var(--arrow); font-weight: normal; }
+  th.sorted .arrow { color: var(--arrow-active); }
   .col-cat { width: 25%; }
   .col-food { width: 55%; }
   .col-status { width: 20%; font-weight: bold; }
@@ -165,19 +221,19 @@
 
   mark {
     background: var(--highlight);
-    color: inherit;
+    color: var(--highlight-text);
     padding: 0;
   }
 
   .empty {
     text-align: center;
-    color: #999;
+    color: var(--faint);
     padding: 30px 4px;
   }
 
   #count {
     font-size: 0.85rem;
-    color: #666;
+    color: var(--muted);
     margin-bottom: 10px;
     display: block;
   }
@@ -213,10 +269,26 @@
     .search-hint { display: none !important; }
   }
 </style>
+<script>
+  // Apply theme before first paint to avoid a flash
+  (function () {
+    try {
+      var saved = localStorage.getItem('typeOFoodsTheme');
+      var dark = saved ? saved === 'dark'
+        : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    } catch (e) {
+      document.documentElement.dataset.theme = 'light';
+    }
+  })();
+</script>
 </head>
 <body>
 
-<h1>Type O Foods Index</h1>
+<div class="app-header">
+  <h1>Type O Foods Index</h1>
+  <button id="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
+</div>
 
 <div class="search-wrap">
   <input type="text" id="search" placeholder="Type to filter by food, category, or status..." autofocus>
@@ -819,7 +891,21 @@ const clearBtn = document.getElementById('clear-search');
 const searchHint = document.getElementById('search-hint');
 const filtersEl = document.getElementById('filters');
 const categorySelect = document.getElementById('category-select');
+const themeToggle = document.getElementById('theme-toggle');
 const headers = Array.from(document.querySelectorAll('th[data-col]'));
+
+// Theme toggle (initial state set by the inline <head> script)
+function syncThemeButton() {
+  const dark = document.documentElement.dataset.theme === 'dark';
+  themeToggle.textContent = dark ? '☀' : '☽'; // sun when dark, moon when light
+}
+syncThemeButton();
+themeToggle.addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('typeOFoodsTheme', next); } catch (e) { /* ignore */ }
+  syncThemeButton();
+});
 
 const KEYS = ['cat', 'name', 'status'];
 const STATUSES = ['All', 'Highly Beneficial', 'Neutral', 'Avoid'];
