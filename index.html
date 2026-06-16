@@ -15,6 +15,7 @@
     --highlight: #fff2a8;
   }
   * { box-sizing: border-box; }
+  html, body { overflow-x: hidden; }
   body {
     font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
     background: var(--bg-color);
@@ -22,7 +23,7 @@
     margin: 0 auto;
     padding: 20px;
     max-width: 900px;
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1.4;
   }
   h1 {
@@ -106,6 +107,20 @@
   .filter-btn[data-status="Highly Beneficial"].active { color: var(--beneficial); border-color: var(--beneficial); }
   .filter-btn[data-status="Avoid"].active { color: var(--avoid); border-color: var(--avoid); }
 
+  /* Category dropdown */
+  #category-select {
+    width: 100%;
+    padding: 9px 10px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    border: 1px solid #aaa;
+    background: var(--bg-color);
+    color: var(--text-color);
+    margin-bottom: 12px;
+    outline: none;
+  }
+  #category-select:focus { border-color: #333; }
+
   table {
     width: 100%;
     border-collapse: collapse;
@@ -116,6 +131,10 @@
     padding: 8px 4px;
     text-align: left;
     vertical-align: top;
+  }
+  td {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   th {
     font-weight: bold;
@@ -157,6 +176,37 @@
     margin-bottom: 10px;
     display: block;
   }
+
+  /* Mobile */
+  @media (max-width: 600px) {
+    body {
+      padding: 12px;
+      font-size: 12px;
+    }
+    h1 {
+      font-size: 1rem;
+      letter-spacing: 0.5px;
+    }
+    input[type="text"] {
+      font-size: 16px; /* prevents iOS zoom-on-focus */
+      padding: 9px 56px 9px 9px;
+    }
+    #category-select { font-size: 16px; }
+    .filter-btn {
+      font-size: 0.72rem;
+      padding: 6px 9px;
+      flex: 1 1 auto;
+      text-align: center;
+    }
+    th, td {
+      padding: 7px 3px;
+    }
+    .col-cat { width: 27%; }
+    .col-food { width: 46%; }
+    .col-status { width: 27%; }
+    /* hide the keyboard hint where there's no physical keyboard */
+    .search-hint { display: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -168,6 +218,10 @@
   <span class="search-hint" id="search-hint">press /</span>
   <button id="clear-search" type="button" aria-label="Clear search" title="Clear (Esc)">&times;</button>
 </div>
+
+<select id="category-select" aria-label="Filter by category">
+  <option value="All">All categories</option>
+</select>
 
 <div class="filters" id="filters">
   <button class="filter-btn active" data-status="All" type="button">All</button>
@@ -759,12 +813,22 @@ const countSpan = document.getElementById('count');
 const clearBtn = document.getElementById('clear-search');
 const searchHint = document.getElementById('search-hint');
 const filtersEl = document.getElementById('filters');
+const categorySelect = document.getElementById('category-select');
 const headers = Array.from(document.querySelectorAll('th[data-col]'));
 
 const KEYS = ['cat', 'name', 'status'];
-let statusFilter = 'All';   // All | Beneficial | Neutral | Avoid
+let statusFilter = 'All';     // All | Highly Beneficial | Neutral | Avoid
+let categoryFilter = 'All';
 let sortCol = -1;
 let sortAsc = true;
+
+// Populate the category dropdown from the data (preserving first-seen order)
+[...new Set(foodData.map(item => item.cat))].forEach(cat => {
+  const opt = document.createElement('option');
+  opt.value = cat;
+  opt.textContent = cat;
+  categorySelect.appendChild(opt);
+});
 
 function escapeHtml(str) {
   return str.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -832,7 +896,8 @@ function update() {
   const query = searchInput.value.trim().toLowerCase();
 
   let rows = foodData.filter(item =>
-    matchesStatus(item) && (
+    matchesStatus(item) &&
+    (categoryFilter === 'All' || item.cat === categoryFilter) && (
       !query ||
       item.name.toLowerCase().includes(query) ||
       item.cat.toLowerCase().includes(query) ||
@@ -878,6 +943,12 @@ filtersEl.addEventListener('click', (e) => {
   filtersEl.querySelectorAll('.filter-btn').forEach(b =>
     b.classList.toggle('active', b === btn)
   );
+  update();
+});
+
+// Category dropdown
+categorySelect.addEventListener('change', () => {
+  categoryFilter = categorySelect.value;
   update();
 });
 
