@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Type O Foods Index</title>
+<style>
+  :root {
+    --bg-color: #ffffff;
+    --text-color: #111111;
+    --border-color: #dddddd;
+    --beneficial: #006600;
+    --neutral: #555555;
+    --avoid: #cc0000;
+  }
+  body {
+    font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+    background: var(--bg-color);
+    color: var(--text-color);
+    margin: 0 auto;
+    padding: 20px;
+    max-width: 900px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  h1 {
+    font-size: 1.2rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-top: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    font-family: inherit;
+    font-size: 1rem;
+    border: 1px solid #aaa;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+    outline: none;
+  }
+  input[type="text"]:focus {
+    border-color: #333;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  th, td {
+    border-bottom: 1px solid var(--border-color);
+    padding: 8px 4px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    font-weight: bold;
+    border-bottom: 2px solid #aaa;
+    cursor: pointer;
+  }
+  th:hover {
+    background: #f0f0f0;
+  }
+  .col-cat { width: 25%; }
+  .col-food { width: 55%; }
+  .col-status { width: 20%; font-weight: bold; }
+
+  .status-Highly { color: var(--beneficial); }
+  .status-Beneficial { color: var(--beneficial); }
+  .status-Neutral { color: var(--neutral); }
+  .status-Avoid { color: var(--avoid); }
+
+  .hidden { display: none; }
+  #count {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 10px;
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<h1>Type O Foods Index</h1>
+<input type="text" id="search" placeholder="Type to filter by food, category, or status..." autofocus>
+<span id="count"></span>
+
+<table id="food-table">
+  <thead>
+    <tr>
+      <th class="col-cat" onclick="sortTable(0)">Category &#x21D5;</th>
+      <th class="col-food" onclick="sortTable(1)">Food &#x21D5;</th>
+      <th class="col-status" onclick="sortTable(2)">Status &#x21D5;</th>
+    </tr>
+  </thead>
+  <tbody id="food-body">
+    </tbody>
+</table>
+
+<script>
+// Catalog compiled directly from the document's lists
+const foodData = [
+  // Seafood
+  { cat: "Seafood", name: "Anchovy", status: "Neutral" },
+  { cat: "Seafood", name: "Beluga", status: "Neutral" },
+  { cat: "Seafood", name: "Bluefish", status: "Neutral" },
+  { cat: "Seafood", name: "Chub", status: "Neutral" },
+  { cat: "Seafood", name: "Clam", status: "Neutral" },
+  { cat: "Seafood", name: "Crab", status: "Neutral" },
+  { cat: "Seafood", name: "Gray sole", status: "Neutral" },
+  { cat: "Seafood", name: "Grouper", status: "Neutral" },
+  { cat: "Seafood", name: "Haddock", status: "Neutral" },
+  { cat: "Seafood", name: "Hake", status: "Neutral" },
+  { cat: "Seafood", name: "Halfmoon fish", status: "Neutral" },
+  { cat: "Seafood", name: "Harvest fish", status: "Neutral" },
+  { cat: "Seafood", name: "Herring (fresh)", status: "Neutral" },
+  { cat: "Seafood", name: "Lobster", status: "Neutral" },
+  { cat: "Seafood", name: "Mackerel", status: "Neutral" },
+  { cat: "Seafood", name: "Mahimahi", status: "Neutral" },
+  { cat: "Seafood", name: "Parrot fish", status: "Neutral" },
+  { cat: "Seafood", name: "Pickerel", status: "Neutral" },
+  { cat: "Seafood", name: "Pompano", status: "Neutral" },
+  { cat: "Seafood", name: "Porgy", status: "Neutral" },
+  { cat: "Seafood", name: "Rosefish", status: "Neutral" },
+  { cat: "Seafood", name: "Sailfish", status: "Neutral" },
+  { cat: "Seafood", name: "Salmon / Salmon roe", status: "Neutral" },
+  { cat: "Seafood", name: "Sardine", status: "Neutral" },
+  { cat: "Seafood", name: "Scallop", status: "Neutral" },
+  { cat: "Seafood", name: "Scrod", status: "Neutral" },
+  { cat: "Seafood", name: "Abalone", status: "Avoid" },
+  { cat: "Seafood", name: "Barracuda", status: "Avoid" },
+  { cat: "Seafood", name: "Herring (pickled)", status: "Avoid" },
+
+  // Eggs and Dairy
+  { cat: "Eggs & Dairy", name: "Eggs", status: "Neutral" },
+  { cat: "Eggs & Dairy", name: "Cheese", status: "Neutral" },
+  { cat: "Eggs & Dairy", name: "Yogurt", status: "Neutral" },
+  { cat: "Eggs & Dairy", name: "Milk", status: "Neutral" },
+  { cat: "Eggs & Dairy", name: "Cottage cheese", status: "Avoid" },
+  { cat: "Eggs & Dairy", name: "Cream cheese", status: "Avoid" },
+  { cat: "Eggs & Dairy", name: "Edam", status: "Avoid" },
+  { cat: "Eggs & Dairy", name: "Egg (goose/quail)", status: "Avoid" },
+  { cat: "Eggs & Dairy", name: "Emmenthal", status: "Avoid" },
+  { cat: "Eggs & Dairy", name: "Monterey jack", status: "Avoid" },
+  { cat: "Eggs & Dairy", name: "Muenster", status: "Avoid" },
+  { cat: "Eggs & Dairy", name: "Neufchâtel", status: "Avoid" },
+  { cat: "Eggs & Dairy", name: "Paneer", status: "Avoid" },
+  { cat: "Eggs & Dairy", name: "Parmesan", status: "Avoid" },
+
+  // Oils and Fats
+  { cat: "Oils & Fats", name: "Linseed (flaxseed) oil", status: "Highly Beneficial" },
+  { cat: "Oils & Fats", name: "Olive oil", status: "Highly Beneficial" },
+  { cat: "Oils & Fats", name: "Almond oil", status: "Neutral" },
+  { cat: "Oils & Fats", name: "Black currant seed oil", status: "Neutral" },
+  { cat: "Oils & Fats", name: "Borage oil", status: "Neutral" },
+  { cat: "Oils & Fats", name: "Canola oil", status: "Neutral" },
+  { cat: "Oils & Fats", name: "Cod liver oil", status: "Neutral" },
+  { cat: "Oils & Fats", name: "Sesame oil", status: "Neutral" },
+  { cat: "Oils & Fats", name: "Walnut oil", status: "Neutral" },
+  { cat: "Oils & Fats", name: "Castor oil", status: "Avoid" },
+  { cat: "Oils & Fats", name: "Coconut oil", status: "Avoid" },
+  { cat: "Oils & Fats", name: "Peanut oil", status: "Avoid" },
+  { cat: "Oils & Fats", name: "Safflower oil", status: "Avoid" },
+  { cat: "Oils & Fats", name: "Corn oil", status: "Avoid" },
+  { cat: "Oils & Fats", name: "Soy oil", status: "Avoid" },
+  { cat: "Oils & Fats", name: "Cottonseed oil", status: "Avoid" },
+  { cat: "Oils & Fats", name: "Sunflower oil", status: "Avoid" },
+  { cat: "Oils & Fats", name: "Evening primrose oil", status: "Avoid" },
+  { cat: "Oils & Fats", name: "Wheat germ oil", status: "Avoid" },
+
+  // Nuts and Seeds
+  { cat: "Nuts & Seeds", name: "Almond / Almond butter", status: "Neutral" },
+  { cat: "Nuts & Seeds", name: "Macadamia", status: "Neutral" },
+  { cat: "Nuts & Seeds", name: "Pecan / Pecan butter", status: "Neutral" },
+  { cat: "Nuts & Seeds", name: "Beechnut", status: "Avoid" },
+  { cat: "Nuts & Seeds", name: "Brazil nut", status: "Avoid" },
+  { cat: "Nuts & Seeds", name: "Cashew / Cashew butter", status: "Avoid" },
+  { cat: "Nuts & Seeds", name: "Chestnut", status: "Avoid" },
+  { cat: "Nuts & Seeds", name: "Litchi", status: "Avoid" },
+  { cat: "Nuts & Seeds", name: "Peanut / Peanut butter", status: "Avoid" },
+  { cat: "Nuts & Seeds", name: "Pistachio", status: "Avoid" },
+  { cat: "Nuts & Seeds", name: "Poppy seed", status: "Avoid" },
+  { cat: "Nuts & Seeds", name: "Sunflower seed / butter", status: "Avoid" },
+
+  // Beans and Legumes
+  { cat: "Beans & Legumes", name: "Copper bean", status: "Neutral" },
+  { cat: "Beans & Legumes", name: "Kidney bean", status: "Neutral" },
+  { cat: "Beans & Legumes", name: "Lentil bean", status: "Neutral" },
+  { cat: "Beans & Legumes", name: "Navy bean", status: "Neutral" },
+  { cat: "Beans & Legumes", name: "Pinto bean", status: "Neutral" },
+  { cat: "Beans & Legumes", name: "Tamarind bean", status: "Neutral" },
+
+  // Grains, Breads, and Pasta
+  { cat: "Grains & Pasta", name: "Barley", status: "Neutral" },
+  { cat: "Grains & Pasta", name: "Corn (white/yellow/blue)", status: "Avoid" },
+  { cat: "Grains & Pasta", name: "Cornflakes / Cornmeal", status: "Avoid" },
+  { cat: "Grains & Pasta", name: "Cream of Wheat", status: "Avoid" },
+  { cat: "Grains & Pasta", name: "Couscous (cracked wheat)", status: "Avoid" },
+  { cat: "Grains & Pasta", name: "English muffin", status: "Avoid" },
+  { cat: "Grains & Pasta", name: "Familia / Farina", status: "Avoid" },
+  { cat: "Grains & Pasta", name: "Gluten flour", status: "Avoid" },
+  { cat: "Grains & Pasta", name: "Grits", status: "Avoid" },
+  { cat: "Grains & Pasta", name: "Granola / Grape-Nuts", status: "Avoid" },
+  { cat: "Grains & Pasta", name: "Matzo", status: "Avoid" },
+  { cat: "Grains & Pasta", name: "Popcorn", status: "Avoid" },
+  { cat: "Grains & Pasta", name: "Pumpernickel", status: "Avoid" },
+  { cat: "Grains & Pasta", name: "Seven grain bread/cereal", status: "Avoid" },
+  { cat: "Grains & Pasta", name: "Shredded wheat", status: "Avoid" },
+  { cat: "Grains & Pasta", name: "Sorghum", status: "Avoid" },
+  { cat: "Grains & Pasta", name: "Spinach pasta", status: "Avoid" },
+  { cat: "Grains & Pasta", name: "Wheat (bran/germ/whole)", status: "Avoid" },
+
+  // Vegetables
+  { cat: "Vegetables", name: "Arugula", status: "Neutral" },
+  { cat: "Vegetables", name: "Asparagus", status: "Neutral" },
+  { cat: "Vegetables", name: "Bamboo shoot", status: "Neutral" },
+  { cat: "Vegetables", name: "Beet", status: "Neutral" },
+  { cat: "Vegetables", name: "Bok choy", status: "Neutral" },
+  { cat: "Vegetables", name: "Brussels sprouts", status: "Neutral" },
+  { cat: "Vegetables", name: "Cabbage", status: "Neutral" },
+  { cat: "Vegetables", name: "Carrot", status: "Neutral" },
+  { cat: "Vegetables", name: "Celeriac", status: "Neutral" },
+  { cat: "Vegetables", name: "Celery", status: "Neutral" },
+  { cat: "Vegetables", name: "Chili pepper", status: "Neutral" },
+  { cat: "Vegetables", name: "Daikon", status: "Neutral" },
+  { cat: "Vegetables", name: "Eggplant", status: "Neutral" },
+  { cat: "Vegetables", name: "Endive", status: "Neutral" },
+  { cat: "Vegetables", name: "Fennel", status: "Neutral" },
+  { cat: "Vegetables", name: "Fiddlehead fern", status: "Neutral" },
+  { cat: "Vegetables", name: "Garlic", status: "Neutral" },
+  { cat: "Vegetables", name: "Lettuce (bibb/Boston/iceberg)", status: "Neutral" },
+  { cat: "Vegetables", name: "Mushroom (abalone/enoki/oyster/portobello)", status: "Neutral" },
+  { cat: "Vegetables", name: "Olive (Greek/green/Spanish)", status: "Neutral" },
+  { cat: "Vegetables", name: "Pea (green/pod/snow)", status: "Neutral" },
+  { cat: "Vegetables", name: "Pepper (green/yellow/jalapeno)", status: "Neutral" },
+  { cat: "Vegetables", name: "Radicchio", status: "Neutral" },
+  { cat: "Vegetables", name: "Radish", status: "Neutral" },
+  { cat: "Vegetables", name: "Rappini (broccoli rabe)", status: "Neutral" },
+  { cat: "Vegetables", name: "Rutabaga", status: "Neutral" },
+  { cat: "Vegetables", name: "Sauerkraut", status: "Neutral" },
+  { cat: "Vegetables", name: "Scallion", status: "Neutral" },
+  { cat: "Vegetables", name: "Shallot", status: "Neutral" },
+  { cat: "Vegetables", name: "Squash (except pumpkin)", status: "Neutral" },
+  { cat: "Vegetables", name: "String bean", status: "Neutral" },
+  { cat: "Vegetables", name: "Tomato", status: "Neutral" },
+  { cat: "Vegetables", name: "Water chestnut", status: "Neutral" },
+  { cat: "Vegetables", name: "Watercress", status: "Neutral" },
+  { cat: "Vegetables", name: "Yam", status: "Neutral" },
+  { cat: "Vegetables", name: "Zucchini", status: "Neutral" },
+  { cat: "Vegetables", name: "Alfalfa sprouts", status: "Avoid" },
+  { cat: "Vegetables", name: "Aloe", status: "Avoid" },
+  { cat: "Vegetables", name: "Avocado", status: "Avoid" },
+  { cat: "Vegetables", name: "Cauliflower", status: "Avoid" },
+  { cat: "Vegetables", name: "Corn", status: "Avoid" },
+  { cat: "Vegetables", name: "Leek", status: "Avoid" },
+  { cat: "Vegetables", name: "Mustard greens", status: "Avoid" },
+  { cat: "Vegetables", name: "Mushroom (shiitake/silver dollar)", status: "Avoid" },
+  { cat: "Vegetables", name: "Olive (black)", status: "Avoid" },
+  { cat: "Vegetables", name: "Potato (purple/red/white/yellow)", status: "Avoid" },
+
+  // Fruits
+  { cat: "Fruits", name: "Apple", status: "Neutral" },
+  { cat: "Fruits", name: "Apricot", status: "Neutral" },
+  { cat: "Fruits", name: "Asian pear", status: "Neutral" },
+  { cat: "Fruits", name: "Boysenberry", status: "Neutral" },
+  { cat: "Fruits", name: "Breadfruit", status: "Neutral" },
+  { cat: "Fruits", name: "Canang / Casaba / Christmas melon", status: "Neutral" },
+  { cat: "Fruits", name: "Cranberry", status: "Neutral" },
+  { cat: "Fruits", name: "Crenshaw / Honeydew melon", status: "Neutral" },
+  { cat: "Fruits", name: "Currant (black/red)", status: "Neutral" },
+  { cat: "Fruits", name: "Date", status: "Neutral" },
+  { cat: "Fruits", name: "Dewberry", status: "Neutral" },
+  { cat: "Fruits", name: "Elderberry", status: "Neutral" },
+  { cat: "Fruits", name: "Gooseberry", status: "Neutral" },
+  { cat: "Fruits", name: "Grape (all types)", status: "Neutral" },
+  { cat: "Fruits", name: "Grapefruit", status: "Neutral" },
+  { cat: "Fruits", name: "Kumquat", status: "Neutral" },
+  { cat: "Fruits", name: "Lemon", status: "Neutral" },
+  { cat: "Fruits", name: "Lime", status: "Neutral" },
+  { cat: "Fruits", name: "Loganberry", status: "Neutral" },
+
+  // Juices & Beverages
+  { cat: "Beverages", name: "Pineapple juice", status: "Beneficial" },
+  { cat: "Beverages", name: "Black cherry juice", status: "Beneficial" },
+  { cat: "Beverages", name: "Vegetable juices", status: "Beneficial" },
+  { cat: "Beverages", name: "Seltzer / Club soda", status: "Neutral" },
+  { cat: "Beverages", name: "Herbal tea", status: "Neutral" },
+  { cat: "Beverages", name: "High-sugar juices (Apple juice/cider)", status: "Avoid" },
+  { cat: "Beverages", name: "Beer", status: "Avoid" },
+
+  // Spices & Condiments
+  { cat: "Spices & Condiments", name: "Agar", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Allspice", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Almond extract", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Anise", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Apple pectin", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Arrowroot", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Barley malt", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Basil / Bay leaf", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Bergamot", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Blackstrap molasses", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Caraway", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Cardamom", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Chervil", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Chili powder", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Chive", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Chocolate", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Cilantro", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Cinnamon", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Coriander", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Cream of tartar", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Clove", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Cumin", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Dill", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Garlic", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Gelatin (plain)", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Honey", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Licorice", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Maple syrup", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Marjoram", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Miso", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Molasses", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Mustard (dry)", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Oregano", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Paprika", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Peppercorn / Pepper flakes", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Peppermint", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Rice syrup", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Rosemary", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Saffron", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Sage", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Savory", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Sea salt", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Soy sauce", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Spearmint", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Stevia / Sucanat", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Sugar (brown/white)", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Tamari / Tamarind", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Tapioca", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Tarragon", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Thyme", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Vanilla", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Vinegar (apple cider)", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Wintergreen", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Yeast (baker's/brewer's)", status: "Neutral" },
+  { cat: "Spices & Condiments", name: "Acacia (gum Arabic)", status: "Avoid" },
+  { cat: "Spices & Condiments", name: "Algae (blue-green)", status: "Avoid" },
+  { cat: "Spices & Condiments", name: "Aspartame", status: "Avoid" },
+  { cat: "Spices & Condiments", name: "Capers", status: "Avoid" },
+  { cat: "Spices & Condiments", name: "Carrageenan", status: "Avoid" },
+  { cat: "Spices & Condiments", name: "Corn syrup", status: "Avoid" },
+  { cat: "Spices & Condiments", name: "Cornstarch", status: "Avoid" },
+  { cat: "Spices & Condiments", name: "Guarana", status: "Avoid" },
+  { cat: "Spices & Condiments", name: "Juniper", status: "Avoid" },
+  { cat: "Spices & Condiments", name: "Mace", status: "Avoid" },
+  { cat: "Spices & Condiments", name: "Maltodextrin", status: "Avoid" },
+  { cat: "Spices & Condiments", name: "MSG", status: "Avoid" },
+  { cat: "Spices & Condiments", name: "Nutmeg", status: "Avoid" },
+  { cat: "Spices & Condiments", name: "Ketchup", status: "Avoid" },
+  { cat: "Spices & Condiments", name: "Mayonnaise", status: "Avoid" },
+  { cat: "Spices & Condiments", name: "Pickle / Pickle relish", status: "Avoid" },
+  { cat: "Spices & Condiments", name: "Worcestershire sauce", status: "Avoid" },
+
+  // Herbs and Herbal Teas
+  { cat: "Herbs & Teas", name: "Catnip", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Chamomile", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Dong quai", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Elder", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Ginseng", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Hawthorn", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Horehound", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Licorice root", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Mullein", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Raspberry leaf", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Sage", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Skullcap", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Spearmint", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Thyme", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Valerian", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Vervain", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "White birch", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "White oak bark", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Yarrow", status: "Neutral" },
+  { cat: "Herbs & Teas", name: "Alfalfa", status: "Avoid" },
+  { cat: "Herbs & Teas", name: "Aloe", status: "Avoid" },
+  { cat: "Herbs & Teas", name: "Burdock", status: "Avoid" },
+  { cat: "Herbs & Teas", name: "Coltsfoot", status: "Avoid" },
+  { cat: "Herbs & Teas", name: "Corn silk", status: "Avoid" },
+  { cat: "Herbs & Teas", name: "Echinacea", status: "Avoid" },
+  { cat: "Herbs & Teas", name: "Gentian", status: "Avoid" },
+  { cat: "Herbs & Teas", name: "Goldenseal", status: "Avoid" },
+  { cat: "Herbs & Teas", name: "Red clover", status: "Avoid" },
+  { cat: "Herbs & Teas", name: "Rhubarb", status: "Avoid" },
+  { cat: "Herbs & Teas", name: "Senna", status: "Avoid" },
+  { cat: "Herbs & Teas", name: "Shepherd's purse", status: "Avoid" },
+  { cat: "Herbs & Teas", name: "St. John's wort", status: "Avoid" },
+  { cat: "Herbs & Teas", name: "Strawberry leaf", status: "Avoid" },
+  { cat: "Herbs & Teas", name: "Yellow dock", status: "Avoid" }
+];
+
+const tableBody = document.getElementById('food-body');
+const searchInput = document.getElementById('search');
+const countSpan = document.getElementById('count');
+
+function renderTable(dataToRender) {
+  tableBody.innerHTML = '';
+  dataToRender.forEach(item => {
+    const tr = document.createElement('tr');
+
+    const tdCat = document.createElement('td');
+    tdCat.textContent = item.cat;
+
+    const tdName = document.createElement('td');
+    tdName.textContent = item.name;
+
+    const tdStatus = document.createElement('td');
+    const statusClass = "status-" + item.status.replace(/\s+/g, '');
+    tdStatus.innerHTML = `<span class="${statusClass}">${item.status}</span>`;
+
+    tr.appendChild(tdCat);
+    tr.appendChild(tdName);
+    tr.appendChild(tdStatus);
+    tableBody.appendChild(tr);
+  });
+  countSpan.textContent = `Showing ${dataToRender.length} items`;
+}
+
+searchInput.addEventListener('input', (e) => {
+  const query = e.target.value.toLowerCase();
+  const filtered = foodData.filter(item =>
+    item.name.toLowerCase().includes(query) ||
+    item.cat.toLowerCase().includes(query) ||
+    item.status.toLowerCase().includes(query)
+  );
+  renderTable(filtered);
+});
+
+// Basic sorting
+let sortCol = -1;
+let sortAsc = true;
+function sortTable(colIndex) {
+  const keys = ['cat', 'name', 'status'];
+  const key = keys[colIndex];
+
+  if (sortCol === colIndex) {
+    sortAsc = !sortAsc;
+  } else {
+    sortCol = colIndex;
+    sortAsc = true;
+  }
+
+  const sorted = [...foodData].sort((a, b) => {
+    if (a[key] < b[key]) return sortAsc ? -1 : 1;
+    if (a[key] > b[key]) return sortAsc ? 1 : -1;
+    return 0;
+  });
+
+  // Re-apply search filter if there is one
+  const query = searchInput.value.toLowerCase();
+  const filtered = sorted.filter(item =>
+    item.name.toLowerCase().includes(query) ||
+    item.cat.toLowerCase().includes(query) ||
+    item.status.toLowerCase().includes(query)
+  );
+
+  renderTable(filtered);
+}
+
+// Initial render
+renderTable(foodData);
+</script>
+
+</body>
+</html>
