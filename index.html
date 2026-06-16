@@ -12,7 +12,9 @@
     --beneficial: #006600;
     --neutral: #555555;
     --avoid: #cc0000;
+    --highlight: #fff2a8;
   }
+  * { box-sizing: border-box; }
   body {
     font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
     background: var(--bg-color);
@@ -31,19 +33,79 @@
     text-transform: uppercase;
     letter-spacing: 1px;
   }
+
+  /* Search field with inline clear button */
+  .search-wrap {
+    position: relative;
+    margin-bottom: 12px;
+  }
   input[type="text"] {
     width: 100%;
-    padding: 10px;
+    padding: 10px 64px 10px 10px;
     font-family: inherit;
     font-size: 1rem;
     border: 1px solid #aaa;
-    margin-bottom: 20px;
     box-sizing: border-box;
     outline: none;
   }
   input[type="text"]:focus {
     border-color: #333;
   }
+  .search-hint {
+    position: absolute;
+    right: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    color: #bbb;
+    pointer-events: none;
+    user-select: none;
+  }
+  #clear-search {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 1.1rem;
+    color: #999;
+    cursor: pointer;
+    padding: 4px 6px;
+    line-height: 1;
+    display: none;
+  }
+  #clear-search:hover { color: #111; }
+
+  /* Status quick-filter buttons */
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .filter-btn {
+    font-family: inherit;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 5px 10px;
+    border: 1px solid #ccc;
+    background: var(--bg-color);
+    color: var(--neutral);
+    cursor: pointer;
+  }
+  .filter-btn:hover { border-color: #888; }
+  .filter-btn.active {
+    border-color: #111;
+    color: #111;
+    font-weight: bold;
+    background: #f2f2f2;
+  }
+  .filter-btn[data-status="Beneficial"].active { color: var(--beneficial); border-color: var(--beneficial); }
+  .filter-btn[data-status="Avoid"].active { color: var(--avoid); border-color: var(--avoid); }
+
   table {
     width: 100%;
     border-collapse: collapse;
@@ -59,20 +121,36 @@
     font-weight: bold;
     border-bottom: 2px solid #aaa;
     cursor: pointer;
+    user-select: none;
+    position: sticky;
+    top: 0;
+    background: var(--bg-color);
+    white-space: nowrap;
   }
-  th:hover {
-    background: #f0f0f0;
-  }
+  th:hover { background: #f0f0f0; }
+  th .arrow { color: #bbb; font-weight: normal; }
+  th.sorted .arrow { color: #111; }
   .col-cat { width: 25%; }
   .col-food { width: 55%; }
   .col-status { width: 20%; font-weight: bold; }
 
-  .status-Highly { color: var(--beneficial); }
-  .status-Beneficial { color: var(--beneficial); }
-  .status-Neutral { color: var(--neutral); }
-  .status-Avoid { color: var(--avoid); }
+  td .status-Highly,
+  td .status-Beneficial { color: var(--beneficial); }
+  td .status-Neutral { color: var(--neutral); }
+  td .status-Avoid { color: var(--avoid); }
 
-  .hidden { display: none; }
+  mark {
+    background: var(--highlight);
+    color: inherit;
+    padding: 0;
+  }
+
+  .empty {
+    text-align: center;
+    color: #999;
+    padding: 30px 4px;
+  }
+
   #count {
     font-size: 0.85rem;
     color: #666;
@@ -84,15 +162,28 @@
 <body>
 
 <h1>Type O Foods Index</h1>
-<input type="text" id="search" placeholder="Type to filter by food, category, or status..." autofocus>
+
+<div class="search-wrap">
+  <input type="text" id="search" placeholder="Type to filter by food, category, or status..." autofocus>
+  <span class="search-hint" id="search-hint">press /</span>
+  <button id="clear-search" type="button" aria-label="Clear search" title="Clear (Esc)">&times;</button>
+</div>
+
+<div class="filters" id="filters">
+  <button class="filter-btn active" data-status="All" type="button">All</button>
+  <button class="filter-btn" data-status="Beneficial" type="button">Beneficial</button>
+  <button class="filter-btn" data-status="Neutral" type="button">Neutral</button>
+  <button class="filter-btn" data-status="Avoid" type="button">Avoid</button>
+</div>
+
 <span id="count"></span>
 
 <table id="food-table">
   <thead>
     <tr>
-      <th class="col-cat" onclick="sortTable(0)">Category &#x21D5;</th>
-      <th class="col-food" onclick="sortTable(1)">Food &#x21D5;</th>
-      <th class="col-status" onclick="sortTable(2)">Status &#x21D5;</th>
+      <th class="col-cat" data-col="0">Category <span class="arrow">&#x21D5;</span></th>
+      <th class="col-food" data-col="1">Food <span class="arrow">&#x21D5;</span></th>
+      <th class="col-status" data-col="2">Status <span class="arrow">&#x21D5;</span></th>
     </tr>
   </thead>
   <tbody id="food-body">
@@ -403,73 +494,174 @@ const foodData = [
 const tableBody = document.getElementById('food-body');
 const searchInput = document.getElementById('search');
 const countSpan = document.getElementById('count');
+const clearBtn = document.getElementById('clear-search');
+const searchHint = document.getElementById('search-hint');
+const filtersEl = document.getElementById('filters');
+const headers = Array.from(document.querySelectorAll('th[data-col]'));
 
-function renderTable(dataToRender) {
+const KEYS = ['cat', 'name', 'status'];
+let statusFilter = 'All';   // All | Beneficial | Neutral | Avoid
+let sortCol = -1;
+let sortAsc = true;
+
+function escapeHtml(str) {
+  return str.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+// Highlight every occurrence of the query within a string (case-insensitive)
+function highlight(text, query) {
+  const safe = escapeHtml(text);
+  if (!query) return safe;
+  const lower = text.toLowerCase();
+  let out = '';
+  let i = 0;
+  while (i < text.length) {
+    const idx = lower.indexOf(query, i);
+    if (idx === -1) { out += escapeHtml(text.slice(i)); break; }
+    out += escapeHtml(text.slice(i, idx));
+    out += '<mark>' + escapeHtml(text.slice(idx, idx + query.length)) + '</mark>';
+    i = idx + query.length;
+  }
+  return out;
+}
+
+function matchesStatus(item) {
+  if (statusFilter === 'All') return true;
+  if (statusFilter === 'Beneficial') return item.status.indexOf('Beneficial') !== -1;
+  return item.status === statusFilter;
+}
+
+function renderTable(rows, query) {
   tableBody.innerHTML = '';
-  dataToRender.forEach(item => {
+
+  if (rows.length === 0) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 3;
+    td.className = 'empty';
+    td.textContent = 'No matches — try a different term or filter.';
+    tr.appendChild(td);
+    tableBody.appendChild(tr);
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+  rows.forEach(item => {
     const tr = document.createElement('tr');
 
     const tdCat = document.createElement('td');
-    tdCat.textContent = item.cat;
+    tdCat.innerHTML = highlight(item.cat, query);
 
     const tdName = document.createElement('td');
-    tdName.textContent = item.name;
+    tdName.innerHTML = highlight(item.name, query);
 
     const tdStatus = document.createElement('td');
-    const statusClass = "status-" + item.status.replace(/\s+/g, '');
-    tdStatus.innerHTML = `<span class="${statusClass}">${item.status}</span>`;
+    const statusClass = 'status-' + item.status.replace(/\s+/g, '');
+    tdStatus.innerHTML = '<span class="' + statusClass + '">' + highlight(item.status, query) + '</span>';
 
     tr.appendChild(tdCat);
     tr.appendChild(tdName);
     tr.appendChild(tdStatus);
-    tableBody.appendChild(tr);
+    frag.appendChild(tr);
   });
-  countSpan.textContent = `Showing ${dataToRender.length} items`;
+  tableBody.appendChild(frag);
 }
 
-searchInput.addEventListener('input', (e) => {
-  const query = e.target.value.toLowerCase();
-  const filtered = foodData.filter(item =>
-    item.name.toLowerCase().includes(query) ||
-    item.cat.toLowerCase().includes(query) ||
-    item.status.toLowerCase().includes(query)
+function update() {
+  const query = searchInput.value.trim().toLowerCase();
+
+  let rows = foodData.filter(item =>
+    matchesStatus(item) && (
+      !query ||
+      item.name.toLowerCase().includes(query) ||
+      item.cat.toLowerCase().includes(query) ||
+      item.status.toLowerCase().includes(query)
+    )
   );
-  renderTable(filtered);
-});
 
-// Basic sorting
-let sortCol = -1;
-let sortAsc = true;
-function sortTable(colIndex) {
-  const keys = ['cat', 'name', 'status'];
-  const key = keys[colIndex];
-
-  if (sortCol === colIndex) {
-    sortAsc = !sortAsc;
-  } else {
-    sortCol = colIndex;
-    sortAsc = true;
+  if (sortCol !== -1) {
+    const key = KEYS[sortCol];
+    rows = rows.slice().sort((a, b) => {
+      if (a[key] < b[key]) return sortAsc ? -1 : 1;
+      if (a[key] > b[key]) return sortAsc ? 1 : -1;
+      return 0;
+    });
   }
 
-  const sorted = [...foodData].sort((a, b) => {
-    if (a[key] < b[key]) return sortAsc ? -1 : 1;
-    if (a[key] > b[key]) return sortAsc ? 1 : -1;
-    return 0;
-  });
+  renderTable(rows, query);
 
-  // Re-apply search filter if there is one
-  const query = searchInput.value.toLowerCase();
-  const filtered = sorted.filter(item =>
-    item.name.toLowerCase().includes(query) ||
-    item.cat.toLowerCase().includes(query) ||
-    item.status.toLowerCase().includes(query)
-  );
+  const total = foodData.length;
+  countSpan.textContent = rows.length === total
+    ? `${total} items`
+    : `${rows.length} of ${total} items`;
 
-  renderTable(filtered);
+  clearBtn.style.display = searchInput.value ? 'block' : 'none';
+  searchHint.style.display = searchInput.value ? 'none' : 'block';
 }
 
+// Search input
+searchInput.addEventListener('input', update);
+
+// Clear button
+clearBtn.addEventListener('click', () => {
+  searchInput.value = '';
+  searchInput.focus();
+  update();
+});
+
+// Status quick-filters
+filtersEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  statusFilter = btn.dataset.status;
+  filtersEl.querySelectorAll('.filter-btn').forEach(b =>
+    b.classList.toggle('active', b === btn)
+  );
+  update();
+});
+
+// Sorting via header click
+headers.forEach(th => {
+  th.addEventListener('click', () => {
+    const col = Number(th.dataset.col);
+    if (sortCol === col) {
+      sortAsc = !sortAsc;
+    } else {
+      sortCol = col;
+      sortAsc = true;
+    }
+    headers.forEach(h => {
+      const arrow = h.querySelector('.arrow');
+      if (Number(h.dataset.col) === sortCol) {
+        h.classList.add('sorted');
+        arrow.innerHTML = sortAsc ? '&#x25B2;' : '&#x25BC;';
+      } else {
+        h.classList.remove('sorted');
+        arrow.innerHTML = '&#x21D5;';
+      }
+    });
+    update();
+  });
+});
+
+// Keyboard shortcuts: "/" to focus search, Esc to clear/blur
+document.addEventListener('keydown', (e) => {
+  if (e.key === '/' && document.activeElement !== searchInput) {
+    e.preventDefault();
+    searchInput.focus();
+    searchInput.select();
+  } else if (e.key === 'Escape' && document.activeElement === searchInput) {
+    if (searchInput.value) {
+      searchInput.value = '';
+      update();
+    } else {
+      searchInput.blur();
+    }
+  }
+});
+
 // Initial render
-renderTable(foodData);
+update();
 </script>
 
 </body>
