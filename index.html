@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Type O Foods Index</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Type O Foods">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   :root {
     --bg-color: #ffffff;
@@ -817,18 +822,39 @@ const categorySelect = document.getElementById('category-select');
 const headers = Array.from(document.querySelectorAll('th[data-col]'));
 
 const KEYS = ['cat', 'name', 'status'];
-let statusFilter = 'All';     // All | Highly Beneficial | Neutral | Avoid
-let categoryFilter = 'All';
+const STATUSES = ['All', 'Highly Beneficial', 'Neutral', 'Avoid'];
+const STORE_KEY = 'typeOFoodsFilters';
+
+// Restore saved filter choices (if any)
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { saved = {}; }
+
+const categories = [...new Set(foodData.map(item => item.cat))];
+
+let statusFilter = STATUSES.includes(saved.status) ? saved.status : 'All';
+let categoryFilter = (saved.category === 'All' || categories.includes(saved.category)) ? saved.category : 'All';
 let sortCol = -1;
 let sortAsc = true;
 
+function saveFilters() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({ status: statusFilter, category: categoryFilter }));
+  } catch (e) { /* ignore quota/private-mode errors */ }
+}
+
 // Populate the category dropdown from the data (preserving first-seen order)
-[...new Set(foodData.map(item => item.cat))].forEach(cat => {
+categories.forEach(cat => {
   const opt = document.createElement('option');
   opt.value = cat;
   opt.textContent = cat;
   categorySelect.appendChild(opt);
 });
+categorySelect.value = categoryFilter;
+
+// Reflect restored status filter in the button states
+filtersEl.querySelectorAll('.filter-btn').forEach(b =>
+  b.classList.toggle('active', b.dataset.status === statusFilter)
+);
 
 function escapeHtml(str) {
   return str.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -943,12 +969,14 @@ filtersEl.addEventListener('click', (e) => {
   filtersEl.querySelectorAll('.filter-btn').forEach(b =>
     b.classList.toggle('active', b === btn)
   );
+  saveFilters();
   update();
 });
 
 // Category dropdown
 categorySelect.addEventListener('change', () => {
   categoryFilter = categorySelect.value;
+  saveFilters();
   update();
 });
 
